@@ -12,6 +12,7 @@ struct led {
 
 // Green, Red, Blue, White
 struct led rouge = {0,25,0,0};
-struct led orange = {15,15,0,0};
+struct led orange = {30,30,0,0};
+struct led sb_orange = {5,5,0,1};
 
 #endif

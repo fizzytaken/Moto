@@ -6,7 +6,10 @@
 // Which pin on the Arduino is connected to the NeoPixels?
 #define Pin_np_Gauche    6
 #define Pin_np_Droite    7
-#define btn_pin 2
+
+#define btn_droite 1
+#define btn_gauche 2
+#define btn_stop 3
  
 // How many NeoPixels are attached to the Arduino?
 #define LED_COUNT 6
@@ -17,32 +20,38 @@ Adafruit_NeoPixel np_droite(LED_COUNT, Pin_np_Droite, NEO_RGBW + NEO_KHZ800);
 int mode = 0; //Init Mode 
 /*
 0 -> Init Mode
-1 -> Cligno Droit
-2 -> Cligno Gauche
-11 -> Cligno Frein Droit
-12 -> Cligno Frein Gauche
+1 -> StandBy Mode
+2 -> Cligno Droit
+3 -> Cligno Gauche
 */
 
 /* ----- FONCTIONS ----- */
-void clean_leds();
-void droite(int);
-void droite_frein(int);
-void gauche(int);
-void gauche_frein(int);
 void init_leds();
-void stop();
+void clean_leds();
+void standby();
+
+void droite(int);
+void gauche(int);
+
+void sw_droite();
+void sw_gauche();
+void sw_stop();
 
 
 /* ----- TRANSITIONS ----- */
-void frein();
-void no_frein();
 
 void setup() {
 
   Serial.begin(9600);
 
-  pinMode(btn_pin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(btn_pin), frein, HIGH);
+  pinMode(btn_droite, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(btn_droite), sw_droite, HIGH);
+
+  pinMode(btn_gauche, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(btn_gauche), sw_gauche, HIGH);
+
+  pinMode(btn_stop, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(btn_stop), sw_stop, HIGH);
 
   init_leds();
   clean_leds();
@@ -55,27 +64,22 @@ void loop() {
 
  switch (mode) {
       case 0:
+        init_leds();
         mode = 1;
         break;
 
       case 1:
-        droite(200);
-        mode = 2;
+        standby();
         break;
 
       case 2:
-        gauche(200);
-        mode = 1;
-        break;
-      
-      case 11:
-        droite_frein(200);
+        droite(200);
         break;
 
-      case 12:
-        gauche_frein(200);
-        break;
-        
+      case 3:
+        gauche(200);
+        break;      
+
       default:
         break;
  }
@@ -84,6 +88,15 @@ void loop() {
 
 /* ------- FONCTIONS -------- */
 
+void standby() {
+  
+  for (int i=0;i<6;i++)
+  {
+    np_gauche.setPixelColor(i, sb_orange.g, sb_orange.r, sb_orange.b, sb_orange.w);
+    np_gauche.show();
+  }
+}
+
 void droite(int time_del) {
   
   for (int i=0;i<6;i++)
@@ -91,24 +104,6 @@ void droite(int time_del) {
     np_droite.setPixelColor(i, orange.g, orange.r, orange.b, orange.w);
     np_droite.show();
     delay(time_del);
-  }
-  clean_leds();
-  
-}
-
-void droite_frein(int time_del)
-{
-  
-  for (int i=3;i<6;i++)
-  {
-    np_droite.setPixelColor(0, rouge.g, rouge.r, rouge.b, rouge.w);
-    np_droite.setPixelColor(1, rouge.g, rouge.r, rouge.b, rouge.w);
-    np_droite.setPixelColor(2, rouge.g, rouge.r, rouge.b, rouge.w);
-    np_droite.setPixelColor(3, rouge.g, rouge.r, rouge.b, rouge.w);
-
-    np_droite.setPixelColor(i, orange.g, orange.r, orange.b, orange.w);
-    np_droite.show();
-    delay(time_del*2);
   }
   clean_leds();
 }
@@ -124,41 +119,6 @@ void gauche(int time_del) {
   clean_leds();
 }
 
-void gauche_frein(int time_del)
-{
-  for (int i=3;i<6;i++)
-  {
-    np_gauche.setPixelColor(0, rouge.g, rouge.r, rouge.b, rouge.w);
-    np_gauche.setPixelColor(1, rouge.g, rouge.r, rouge.b, rouge.w);
-    np_gauche.setPixelColor(2, rouge.g, rouge.r, rouge.b, rouge.w);
-    np_gauche.setPixelColor(3, rouge.g, rouge.r, rouge.b, rouge.w);
-
-    np_gauche.setPixelColor(i, orange.g, orange.r, orange.b, orange.w);
-    np_gauche.show();
-    delay(time_del*2);
-  }
-  clean_leds();
-}
-
-
-void stop()
-{ 
-  int time_del= 300;
-  while (digitalRead(btn_pin) == HIGH)
-  {
-  for (int i=0;i<6;i++)
-  {
-    np_gauche.setPixelColor(i, rouge.g, rouge.r, rouge.b, rouge.w);
-    np_droite.setPixelColor(i, rouge.g, rouge.r, rouge.b, rouge.w);
-  }
-  np_gauche.show();
-  np_droite.show();
-
-  delay(time_del);
-  clean_leds();
-  delay(time_del);
-}}
-
 void clean_leds(){
 
   for (int i=0;i<6;i++)
@@ -173,15 +133,18 @@ void clean_leds(){
 void init_leds(){
   np_gauche.begin();
   np_droite.begin();
-
 }
 
+/* --- Transitions --- */
 
-/* ----- TRANSITIONS ----- */
-
-void frein()
-{
- if (mode == 1){mode = 11;}
- else if (mode == 2){mode = 12;}
+void sw_stop(){
+  mode = 1;
 }
 
+void sw_droite(){
+  mode = 2;
+}
+
+void sw_gauche(){
+  mode = 3;
+}
