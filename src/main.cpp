@@ -5,9 +5,9 @@
 
 // Which pin on the Arduino is connected to the NeoPixels?
 #define Pin_np_Gauche    6
-#define Pin_np_Droite    7
+#define Pin_np_Droite    5
 
-#define btn_droite 1
+#define btn_droite 7
 #define btn_gauche 2
 #define btn_stop 3
  
@@ -56,6 +56,7 @@ void setup() {
   init_leds();
   clean_leds();
 
+
   Serial.write("BOOT OK\r\n");
 }
 
@@ -92,8 +93,12 @@ void standby() {
   
   for (int i=0;i<6;i++)
   {
+    np_droite.setPixelColor(i, sb_orange.g, sb_orange.r, sb_orange.b, sb_orange.w);
     np_gauche.setPixelColor(i, sb_orange.g, sb_orange.r, sb_orange.b, sb_orange.w);
+    
+    np_droite.show();
     np_gauche.show();
+    
   }
 }
 
@@ -123,11 +128,12 @@ void clean_leds(){
 
   for (int i=0;i<6;i++)
   {
-    np_gauche.setPixelColor(i, 0, 0, 0, 0);
-    np_droite.setPixelColor(i, 0, 0, 0, 0);
+    np_droite.setPixelColor(i, sb_orange.g, sb_orange.r, sb_orange.b, sb_orange.w);
+    np_gauche.setPixelColor(i, sb_orange.g, sb_orange.r, sb_orange.b, sb_orange.w);
+
   }
-  np_gauche.show();
   np_droite.show();
+  np_gauche.show();
 }
 
 void init_leds(){
