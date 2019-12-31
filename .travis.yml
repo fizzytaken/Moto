@@ -15,7 +15,6 @@ before_install:
   - source <(curl -SLs https://raw.githubusercontent.com/adafruit/travis-ci-arduino/master/install.sh)
 install:
   # Note that every library should be installed in a seperate command
-  - if [ ! -d "$HOME/arduino_ide/libraries/Adafruit_NeoPixel" ]; then git clone https://github.com/adafruit/Adafruit_NeoPixel $HOME/arduino_ide/libraries/Adafruit_NeoPixel; fi
   - arduino --install-library "Adafruit_NeoPixel"
 script:
   - build_main_platforms
