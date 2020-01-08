@@ -16,8 +16,8 @@
   #define Pin_np_Droite    18
 
 //BLE
-  #define SERVICE_UUID           "c76b3e01-9978-4ab9-9675-f3e59dcb7bb1" // Custom UUID
-  #define CHARACTERISTIC_UUID_TX "c76b3e03-9978-4ab9-9675-f3e59dcb7bb1"
+  #define SERVICE_UUID        "c76b3e01-9978-4ab9-9675-f3e59dcb7bb1" // Custom UUID
+  #define CHARACTERISTIC_UUID "c76b3e02-9978-4ab9-9675-f3e59dcb7bb1"
 
 //PushButton
   Button Inter_G = {21};
@@ -31,37 +31,53 @@
 
 
 /* -----  INIT BT  -----*/
-  BLECharacteristic *pCharacteristic;
-  bool deviceConnected = false;
-  float txValue = 0;
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic = NULL;
 
-int mode = 0; 
+#define NOTIFY_CHARACTERISTIC
+
+bool estConnecte = false;
+bool etaitConnecte = false;
+
+uint8_t mode = 0; 
 
 /* -----  CALLBACKS  ----- */
 
-  class MyServerCallbacks: public BLEServerCallbacks {
-      void onConnect(BLEServer* pServer) {
-        deviceConnected = true;
-      };
-      
-      void onDisconnect(BLEServer* pServer) {
-        deviceConnected = false;
+  class EtatServeur : public BLEServerCallbacks 
+  {
+      void onConnect(BLEServer* pServer) 
+      {
+        estConnecte = true;
+      }
+
+      void onDisconnect(BLEServer* pServer) 
+      {
+        estConnecte = false;
       }
   };
 
   void IRAM_ATTR To_Stop() {
+    if (mode != 1){
     mode = 1;
     Serial.println("Mode 1");
+    status_BLE(mode);
+    }
   }
 
   void IRAM_ATTR To_Gauche() {
+    if (mode != 2){
     mode = 2;
     Serial.println("Mode 2");
+    status_BLE(mode);
+    }
   }
 
   void IRAM_ATTR To_Droite() {
+    if (mode != 3){
     mode = 3;
     Serial.println("Mode 3");
+    status_BLE(mode);
+    }
   }
 
 void setup() {
@@ -79,15 +95,17 @@ void setup() {
   BLEDevice::init("CB500_Fred"); // Give it a name
 
   // Create the BLE Server
-  BLEServer *pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new EtatServeur());
 
   // Create the BLE Service
   BLEService *pService = pServer->createService(SERVICE_UUID);
 
+
+
   // Create a BLE Characteristic
   pCharacteristic = pService->createCharacteristic(
-                      CHARACTERISTIC_UUID_TX,
+                      CHARACTERISTIC_UUID,
                       BLECharacteristic::PROPERTY_NOTIFY
                     );
                       
@@ -105,15 +123,6 @@ void setup() {
 }
 
 void loop() {
-
-  if (deviceConnected) {
-
-    txValue =  mode;
-    char txString[8]; // make sure this is big enuffz
-    dtostrf(txValue, 1, 1, txString); // float_val, min_width, digits_after_decimal, char_buffer
-    pCharacteristic->setValue(txString);
-    pCharacteristic->notify(); // Send the value to the app!
-  }
 
  switch (mode) {
       case 0:
@@ -138,7 +147,15 @@ void loop() {
 }
 
 /* ------- FONCTIONS -------- */
-
+void status_BLE(int data){
+  if (estConnecte){ 
+  
+    char txString[8]; // make sure this is big enuffz
+    dtostrf(data, 1, 1, txString); // float_val, min_width, digits_after_decimal, char_buffer
+    pCharacteristic->setValue(txString);
+    pCharacteristic->notify(); // Send the value to the app!
+  }
+}
 void standby() {
   
   for (int i=0;i<6;i++)
