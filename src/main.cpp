@@ -117,8 +117,10 @@ void setup() {
   pService->start();
 
   // Start advertising
+  pServer->getAdvertising()->addServiceUUID(SERVICE_UUID);
   pServer->getAdvertising()->start();
   Serial.println("BLE Server Ready... ");
+  
 
   init_leds();
   clean_leds();
