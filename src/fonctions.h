@@ -26,6 +26,6 @@ struct Button {
 /* ----- Color Cofiguration ----- */
 struct led rouge = {0,25,0,0};
 struct led orange = {200,200,0,0};
-struct led sb_orange = {50,50,0,10};
+struct led sb_orange = {20,20,0,10};
 
 #endif
