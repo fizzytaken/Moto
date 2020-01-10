@@ -40,7 +40,7 @@ bool estConnecte = false;
 bool etaitConnecte = false;
 
 uint8_t mode = 0; 
-
+uint8_t prev_mode = mode; 
 /* -----  CALLBACKS  ----- */
 
   class EtatServeur : public BLEServerCallbacks 
@@ -58,6 +58,7 @@ uint8_t mode = 0;
 
   void IRAM_ATTR To_Stop() {
     if (mode != 1){
+    prev_mode = mode; 
     mode = 1;
     Serial.println("Mode 1");
     status_BLE(mode);
@@ -66,6 +67,7 @@ uint8_t mode = 0;
 
   void IRAM_ATTR To_Gauche() {
     if (mode != 2){
+    prev_mode = mode;
     mode = 2;
     Serial.println("Mode 2");
     status_BLE(mode);
@@ -74,6 +76,7 @@ uint8_t mode = 0;
 
   void IRAM_ATTR To_Droite() {
     if (mode != 3){
+    prev_mode = mode;
     mode = 3;
     Serial.println("Mode 3");
     status_BLE(mode);
@@ -134,7 +137,8 @@ void loop() {
         break;
 
       case 1:
-        standby();
+        if (mode != prev_mode) {standby();}
+      
         break;
 
       case 2:
@@ -148,6 +152,7 @@ void loop() {
       default:
         break;
  }
+ prev_mode = mode;
 }
 
 /* ------- FONCTIONS -------- */
@@ -163,7 +168,7 @@ void standby() {
   {
     np_droite.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b, sb_orange.w);
     np_gauche.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b, sb_orange.w);
-    
+    delay(1);
     np_droite.show();
     np_gauche.show();
     
@@ -175,8 +180,8 @@ void droite(int time_del) {
   for (int i=0;i<6;i++)
   {
     np_droite.setPixelColor(i, orange.r, orange.g, orange.b, orange.w);
-    np_droite.show();
     delay(time_del);
+    np_droite.show();
   }
   clean_leds();
 }
@@ -186,8 +191,8 @@ void gauche(int time_del) {
   for (int i=0;i<6;i++)
   {
     np_gauche.setPixelColor(i, orange.r, orange.g, orange.b, orange.w);
-    np_gauche.show();
     delay(time_del);
+    np_gauche.show();
   }
   clean_leds();
 }
