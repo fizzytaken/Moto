@@ -8,6 +8,7 @@ void droite(int);
 void gauche(int);
 void clean_leds();
 void init_leds();
+void wait_connect();
 
 /* ----- Define STRUCTS ----- */
 struct led {
