@@ -23,6 +23,7 @@ static BLERemoteCharacteristic* pRemoteCharacteristic;
 static BLEAdvertisedDevice* myDevice;
 
 uint8_t mode = 0; 
+uint8_t prev_mode = mode; 
 
 /* ----- INIT NeoPixel ----- */
   Adafruit_NeoPixel np_gauche(LED_COUNT, Pin_np_Gauche, NEO_GRB + NEO_KHZ800);
@@ -37,6 +38,7 @@ static void notifyCallback(
   bool isNotify) {
     Serial.print("New mode: ");
     Serial.println(pData[0]);
+    prev_mode = mode;
     mode = pData[0];
 }
 
@@ -170,7 +172,7 @@ void loop() {
         break;
 
       case 1:
-        standby();
+        if (prev_mode != mode){standby();}
         break;
 
       case 2:
@@ -184,6 +186,7 @@ void loop() {
       default:
         break;
     }
+    prev_mode = mode;
     /*
     String newValue = "Time since boot: " + String(millis()/1000);
     Serial.println("Setting new characteristic value to \"" + newValue + "\"");
@@ -203,11 +206,11 @@ void loop() {
 
 void standby() {
   
-  for (int i=0;i<=LED_COUNT;i++)
+  for (int i=0;i<LED_COUNT;i++)
   {
     np_droite.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b);
     np_gauche.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b);
-    delay(1);
+    delay(10);
     np_droite.show();
     np_gauche.show();
     
@@ -215,24 +218,28 @@ void standby() {
 }
 
 void droite(int time_del) {
-  
-  for (int i=1;i<=LED_COUNT;i++)
+  np_droite.setPixelColor(0, sb_orange.r, sb_orange.g, sb_orange.b);
+
+  for (int i=1;i<LED_COUNT;i++)
   {
     np_droite.setPixelColor(i, orange.r, orange.g, orange.b);
     delay(time_del);
     np_droite.show();
   }
+  delay(time_del);
   clean_leds();
 }
 
 void gauche(int time_del) {
-  
-  for (int i=1;i<=LED_COUNT;i++)
+  np_gauche.setPixelColor(0, sb_orange.r, sb_orange.g, sb_orange.b);
+
+  for (int i=1;i<LED_COUNT;i++)
   {
     np_gauche.setPixelColor(i, orange.r, orange.g, orange.b);
     delay(time_del);
     np_gauche.show();
   }
+  delay(time_del);
   clean_leds();
 }
 
@@ -242,9 +249,8 @@ void clean_leds(){
   {
     np_droite.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b);
     np_gauche.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b);
-
   }
-  delay(1);
+  delay(10);
   np_droite.show();
   np_gauche.show();
 }
@@ -261,7 +267,7 @@ void wait_connect() {
   {
     np_gauche.setPixelColor(i, rouge.r, rouge.g, rouge.b);
     np_droite.setPixelColor(i, rouge.r, rouge.g, rouge.b);
-    delay(1);
+    delay(10);
     
     np_gauche.show();
     np_droite.show();
