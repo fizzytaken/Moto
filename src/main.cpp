@@ -1,193 +1,140 @@
+/**
+ * A BLE client example that is rich in capabilities.
+ */
 #include <Arduino.h>
-#include <Adafruit_NeoPixel.h>
 
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
+#include "BLEDevice.h"
+//#include "BLEScan.h"
 
-#include "fonctions.h"
-
-/* ----- DEFINE ----- */
-//Neopixel 
-  #define LED_COUNT 6
-
-  #define Pin_np_Gauche    5
-  #define Pin_np_Droite    18
-
-//BLE
-  #define SERVICE_UUID           "c76b3e01-9978-4ab9-9675-f3e59dcb7bb1" // Custom UUID
-  #define CHARACTERISTIC_UUID_TX "c76b3e03-9978-4ab9-9675-f3e59dcb7bb1"
-
-//PushButton
-  Button Inter_G = {21};
-  Button Inter_S = {23};
-  Button Inter_D = {22};
+// The remote service we wish to connect to.
+//static BLEUUID serviceUUID("91bad492-b950-4226-aa2b-4ede9fa42f59");
+static BLEUUID serviceUUID("00001010-0000-1000-8000-00805f9b34fb");
+// The characteristic of the remote service we are interested in.
+//static BLEUUID    charUUID("0d563a58-196a-48ce-ace2-dfec78acc814");
+static BLEUUID charUUID("c76b3e02-9978-4ab9-9675-f3e59dcb7bb1");
 
 
-/* ----- INIT NeoPixel ----- */
-  Adafruit_NeoPixel np_gauche(LED_COUNT, Pin_np_Gauche, NEO_RGBW + NEO_KHZ800);
-  Adafruit_NeoPixel np_droite(LED_COUNT, Pin_np_Droite, NEO_RGBW + NEO_KHZ800);
+static BLEAddress *pServerAddress;
+static boolean doConnect = false;
+static boolean connected = false;
+static BLERemoteCharacteristic* pRemoteCharacteristic;
+
+static void notifyCallback(
+  BLERemoteCharacteristic* pBLERemoteCharacteristic,
+  uint8_t* pData,
+  size_t length,
+  bool isNotify) {
+    Serial.print("Notify callback for characteristic ");
+    Serial.print(pBLERemoteCharacteristic->getUUID().toString().c_str());
+    Serial.print(" of data length ");
+    Serial.println(length);
+}
+
+bool connectToServer(BLEAddress pAddress) {
+    Serial.print("Forming a connection to ");
+    Serial.println(pAddress.toString().c_str());
+    
+    BLEClient*  pClient  = BLEDevice::createClient();
+    Serial.println(" - Created client");
+
+    // Connect to the remove BLE Server.
+    pClient->connect(pAddress);
+    Serial.println(" - Connected to server");
+
+    // Obtain a reference to the service we are after in the remote BLE server.
+    BLERemoteService* pRemoteService = pClient->getService(serviceUUID);
+    if (pRemoteService == nullptr) {
+      Serial.print("Failed to find our service UUID: ");
+      Serial.println(serviceUUID.toString().c_str());
+      return false;
+    }
+    Serial.println(" - Found our service");
 
 
-/* -----  INIT BT  -----*/
-  BLECharacteristic *pCharacteristic;
-  bool deviceConnected = false;
-  float txValue = 0;
+    // Obtain a reference to the characteristic in the service of the remote BLE server.
+    pRemoteCharacteristic = pRemoteService->getCharacteristic(charUUID);
+    if (pRemoteCharacteristic == nullptr) {
+      Serial.print("Failed to find our characteristic UUID: ");
+      Serial.println(charUUID.toString().c_str());
+      return false;
+    }
+    Serial.println(" - Found our characteristic");
 
-int mode = 0; 
+    // Read the value of the characteristic.
+    std::string value = pRemoteCharacteristic->readValue();
+    Serial.print("The characteristic value was: ");
+    Serial.println(value.c_str());
 
-/* -----  CALLBACKS  ----- */
+    pRemoteCharacteristic->registerForNotify(notifyCallback);
+}
+/**
+ * Scan for BLE servers and find the first one that advertises the service we are looking for.
+ */
+class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
+ /**
+   * Called for each advertising BLE server.
+   */
+  void onResult(BLEAdvertisedDevice advertisedDevice) {
+    Serial.print("BLE Advertised Device found: ");
+    Serial.println(advertisedDevice.toString().c_str());
 
-  class MyServerCallbacks: public BLEServerCallbacks {
-      void onConnect(BLEServer* pServer) {
-        deviceConnected = true;
-      };
-      
-      void onDisconnect(BLEServer* pServer) {
-        deviceConnected = false;
-      }
-  };
+    // We have found a device, let us now see if it contains the service we are looking for.
+    Serial.println("haveServiceUUID: ");
+    Serial.println(advertisedDevice.haveServiceUUID());
+    if (advertisedDevice.haveServiceUUID() && advertisedDevice.getServiceUUID().equals(serviceUUID)) {
 
-  void IRAM_ATTR To_Stop() {
-    mode = 1;
-    Serial.println("Mode 1");
-  }
+      // 
+      Serial.print("Found our device!  address: "); 
+      advertisedDevice.getScan()->stop();
 
-  void IRAM_ATTR To_Gauche() {
-    mode = 2;
-    Serial.println("Mode 2");
-  }
+      pServerAddress = new BLEAddress(advertisedDevice.getAddress());
+      doConnect = true;
 
-  void IRAM_ATTR To_Droite() {
-    mode = 3;
-    Serial.println("Mode 3");
-  }
+    } // Found our server
+  } // onResult
+}; // MyAdvertisedDeviceCallbacks
+
 
 void setup() {
   Serial.begin(9600);
-  
-  pinMode(Inter_G.PIN, INPUT_PULLUP);
-  pinMode(Inter_S.PIN, INPUT_PULLUP);
-  pinMode(Inter_D.PIN, INPUT_PULLUP);
+  Serial.println("Starting Arduino BLE Client application...");
+  BLEDevice::init("");
 
-  attachInterrupt(Inter_G.PIN, To_Gauche, FALLING);
-  attachInterrupt(Inter_S.PIN, To_Stop, FALLING);
-  attachInterrupt(Inter_D.PIN, To_Droite, FALLING);
+  // Retrieve a Scanner and set the callback we want to use to be informed when we
+  // have detected a new device.  Specify that we want active scanning and start the
+  // scan to run for 30 seconds.
+  BLEScan* pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  pBLEScan->setActiveScan(true);
+  pBLEScan->start(30);
+} // End of setup.
 
-  // Create the BLE Device
-  BLEDevice::init("CB500_Fred"); // Give it a name
 
-  // Create the BLE Server
-  BLEServer *pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
-  // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  // Create a BLE Characteristic
-  pCharacteristic = pService->createCharacteristic(
-                      CHARACTERISTIC_UUID_TX,
-                      BLECharacteristic::PROPERTY_NOTIFY
-                    );
-                      
-  pCharacteristic->addDescriptor(new BLE2902());
-
-  // Start the service
-  pService->start();
-
-  // Start advertising
-  pServer->getAdvertising()->start();
-  Serial.println("BLE Server Ready... ");
-
-  init_leds();
-  clean_leds();
-}
-
+// This is the Arduino main loop function.
 void loop() {
 
-  if (deviceConnected) {
-
-    txValue =  mode;
-    char txString[8]; // make sure this is big enuffz
-    dtostrf(txValue, 1, 1, txString); // float_val, min_width, digits_after_decimal, char_buffer
-    pCharacteristic->setValue(txString);
-    pCharacteristic->notify(); // Send the value to the app!
+  // If the flag "doConnect" is true then we have scanned for and found the desired
+  // BLE Server with which we wish to connect.  Now we connect to it.  Once we are 
+  // connected we set the connected flag to be true.
+  if (doConnect == true) {
+    if (connectToServer(*pServerAddress)) {
+      Serial.println("We are now connected to the BLE Server.");
+      connected = true;
+    } else {
+      Serial.println("We have failed to connect to the server; there is nothin more we will do.");
+    }
+    doConnect = false;
   }
 
- switch (mode) {
-      case 0:
-        init_leds();
-        break;
-
-      case 1:
-        standby();
-        break;
-
-      case 2:
-        droite(200);
-        break;
-
-      case 3:
-        gauche(200);
-        break;      
-
-      default:
-        break;
- }
-}
-
-/* ------- FONCTIONS -------- */
-
-void standby() {
-  
-  for (int i=0;i<6;i++)
-  {
-    np_droite.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b, sb_orange.w);
-    np_gauche.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b, sb_orange.w);
+  // If we are connected to a peer BLE Server, update the characteristic each time we are reached
+  // with the current time since boot.
+  if (connected) {
+    String newValue = "Time since boot: " + String(millis()/1000);
+    Serial.println("Setting new characteristic value to \"" + newValue + "\"");
     
-    np_droite.show();
-    np_gauche.show();
-    
+    // Set the characteristic's value to be the array of bytes that is actually a string.
+    pRemoteCharacteristic->writeValue(newValue.c_str(), newValue.length());
   }
-}
-
-void droite(int time_del) {
   
-  for (int i=0;i<6;i++)
-  {
-    np_droite.setPixelColor(i, orange.r, orange.g, orange.b, orange.w);
-    np_droite.show();
-    delay(time_del);
-  }
-  clean_leds();
-}
-
-void gauche(int time_del) {
-  
-  for (int i=0;i<6;i++)
-  {
-    np_gauche.setPixelColor(i, orange.r, orange.g, orange.b, orange.w);
-    np_gauche.show();
-    delay(time_del);
-  }
-  clean_leds();
-}
-
-void clean_leds(){
-
-  for (int i=0;i<6;i++)
-  {
-    np_droite.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b, sb_orange.w);
-    np_gauche.setPixelColor(i, sb_orange.r, sb_orange.g, sb_orange.b, sb_orange.w);
-
-  }
-  np_droite.show();
-  np_gauche.show();
-}
-
-void init_leds(){
-  np_gauche.begin();
-  np_droite.begin();
-  mode = 1;
-}
+  delay(1000); // Delay a second between loops.
+} // End of loop
