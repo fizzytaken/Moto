@@ -16,8 +16,8 @@
   #define Pin_np_Droite    18
 
 //BLE
-  #define SERVICE_UUID        "c76b3e01-9978-4ab9-9675-f3e59dcb7bb1" // Custom UUID
-  #define CHARACTERISTIC_UUID "c76b3e02-9978-4ab9-9675-f3e59dcb7bb1"
+  #define SERVICE_UUID        "042bd80f-14f6-42be-a45c-a62836a4fa3f"
+  #define CHARACTERISTIC_UUID "065de41b-79fb-479d-b592-47caf39bfccb"
 
 //PushButton
   Button Inter_G = {21};
@@ -92,7 +92,7 @@ void setup() {
   attachInterrupt(Inter_D.PIN, To_Droite, FALLING);
 
   // Create the BLE Device
-  BLEDevice::init("CB500_Fred"); // Give it a name
+  BLEDevice::init("CB500"); // Give it a name
 
   // Create the BLE Server
   pServer = BLEDevice::createServer();
@@ -104,12 +104,14 @@ void setup() {
 
 
   // Create a BLE Characteristic
-  pCharacteristic = pService->createCharacteristic(
-                      CHARACTERISTIC_UUID,
-                      BLECharacteristic::PROPERTY_NOTIFY
-                    );
-                      
+  #ifdef NOTIFY_CHARACTERISTIC
+  pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID,BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE  | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE);
+  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+  // Crée un descripteur : Client Characteristic Configuration (pour les indications/notifications)
   pCharacteristic->addDescriptor(new BLE2902());
+  #else
+  pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+  #endif
 
   // Start the service
   pService->start();
@@ -147,12 +149,9 @@ void loop() {
 }
 
 /* ------- FONCTIONS -------- */
-void status_BLE(int data){
+void status_BLE(uint8_t data){
   if (estConnecte){ 
-  
-    char txString[8]; // make sure this is big enuffz
-    dtostrf(data, 1, 1, txString); // float_val, min_width, digits_after_decimal, char_buffer
-    pCharacteristic->setValue(txString);
+    pCharacteristic->setValue(&data, 1);
     pCharacteristic->notify(); // Send the value to the app!
   }
 }
