@@ -8,10 +8,10 @@
 
 // The remote service we wish to connect to.
 //static BLEUUID serviceUUID("91bad492-b950-4226-aa2b-4ede9fa42f59");
-static BLEUUID serviceUUID("00001010-0000-1000-8000-00805f9b34fb");
+static BLEUUID serviceUUID("042bd80f-14f6-42be-a45c-a62836a4fa3f");
 // The characteristic of the remote service we are interested in.
 //static BLEUUID    charUUID("0d563a58-196a-48ce-ace2-dfec78acc814");
-static BLEUUID charUUID("c76b3e02-9978-4ab9-9675-f3e59dcb7bb1");
+static BLEUUID charUUID("065de41b-79fb-479d-b592-47caf39bfccb");
 
 
 static BLEAddress *pServerAddress;
