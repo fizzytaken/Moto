@@ -4,8 +4,9 @@ Moto is a software used to manage bike's blinkers and manage BLE devices on ESP3
 
 ## Installation
 
-[VisualStudioCode](https://code.visualstudio.com/download)
-[PlatformIo](https://platformio.org/platformio-ide)
+- [VisualStudioCode](https://code.visualstudio.com/download) 
+
+- [PlatformIo](https://platformio.org/platformio-ide) Used to compile and flash software to device
 
 
 ## Usage
