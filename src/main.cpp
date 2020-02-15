@@ -8,8 +8,8 @@
 
  #define LED_COUNT 7
 
-  #define Pin_np_Gauche    18
-  #define Pin_np_Droite    17
+  #define Pin_np_Gauche    5
+  #define Pin_np_Droite    18
 
 //Server to connect UUIDs 
 static BLEUUID serviceUUID("042bd80f-14f6-42be-a45c-a62836a4fa3f");
