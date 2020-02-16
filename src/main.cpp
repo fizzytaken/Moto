@@ -20,9 +20,9 @@
   #define CHARACTERISTIC_UUID "065de41b-79fb-479d-b592-47caf39bfccb"
 
 //PushButton
-  Button Inter_G = {21};
-  Button Inter_S = {23};
-  Button Inter_D = {22};
+  Button Inter_G = {22};
+  Button Inter_S = {21};
+  Button Inter_D = {23};
 
 
 /* ----- INIT NeoPixel ----- */
